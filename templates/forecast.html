@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Прогноз для {{ city }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <style>
+    #city-count { font-weight: bold; }
+    .spinner { display: inline-block; width: 1em; height: 1em; border: 2px solid #ccc; border-top-color: #3273dc; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<section class="section">
+  <div class="container">
+    <h1 class="title">Погода в {{ city }}</h1>
+
+    {# Текущая погода #}
+    {% if current_temp is not none %}
+      <div class="box">
+        <p><strong>Сейчас ({{ current_time }}):</strong></p>
+        <p> Темп.: {{ current_temp }} °C</p>
+        {% if current_wind is not none %}
+          <p> Ветер: {{ current_wind }} м/с</p>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {# Таблица прогноза #}
+    <table class="table is-fullwidth is-striped">
+      <thead>
+        <tr>
+          <th>Время</th>
+          <th>Темп.,°C</th>
+          {% if hum is defined %}<th>Влажн.,%</th>{% endif %}
+          {% if wind is defined %}<th>Ветер,м/с</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in range(hours|length) %}
+          <tr>
+            <td>{{ hours[i] }}</td>
+            <td>{{ temps[i] }}</td>
+            {% if hum is defined %}<td>{{ hum[i] }}</td>{% endif %}
+            {% if wind is defined %}<td>{{ wind[i] }}</td>{% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# Линк «Другой город» и «Статистика» #}
+    <p class="buttons">
+      <a class="button is-link" href="{{ url_for('index') }}">← Другой город</a>
+      <button id="load-stats" class="button is-info">Показать статистику поисков</button>
+    </p>
+
+    {# Блок для вывода статистики #}
+    <div id="stats" class="content" style="display:none;">
+      <h2 class="subtitle">Статистика поисков</h2>
+      <p>Город <strong>{{ city }}</strong> запрашивали <span id="city-count"><span class="spinner"></span></span> раз(а).</p>
+      <p>Полный список по городам: <a href="{{ url_for('api_history') }}" target="_blank">/api/history</a></p>
+    </div>
+  </div>
+</section>
+
+<script>
+document.getElementById('load-stats').addEventListener('click', async () => {
+  const statsDiv = document.getElementById('stats');
+  const cityCount = document.getElementById('city-count');
+
+  statsDiv.style.display = 'block';
+  cityCount.innerHTML = '<span class="spinner"></span>';
+
+  const resp = await fetch('{{ url_for("api_history") }}');
+  const data = await resp.json();
+
+  const rec = data.find(r => r.city === '{{ city }}');
+  cityCount.textContent = rec ? rec.count : 0;
+});
+</script>
+</body>
+</html>

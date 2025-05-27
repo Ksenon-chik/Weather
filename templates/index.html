@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Прогноз погоды</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <style>
+    .suggestions {
+      position: relative;
+    }
+    .suggestions-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      background: white;
+      border: 1px solid #dbdbdb;
+      border-radius: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .suggestions-list a {
+      display: block;
+      padding: 0.5rem;
+      cursor: pointer;
+    }
+    .suggestions-list a:hover {
+      background: #f5f5f5;
+    }
+  </style>
+</head>
+<body>
+<section class="section">
+  <div class="container">
+    <h1 class="title">Проверить погоду</h1>
+
+    {# Flash-сообщения #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="notifications">
+          {% for category, text in messages %}
+            <div class="notification is-{{ category }}">
+              {{ text }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {# Последний город из cookie #}
+    {% if last_city %}
+      <div class="box">
+        Последний город:
+        <a href="{{ url_for('forecast', city=last_city) }}">{{ last_city }}</a>
+      </div>
+    {% endif %}
+
+    {# Форма поиска города с автодополнением #}
+    <form method="post" autocomplete="off">
+      <div class="field suggestions">
+        <div class="control is-expanded">
+          <input id="city-input" class="input" type="text" name="city"
+                 placeholder="Введите город" required value="{{ last_city or '' }}">
+        </div>
+        <div class="control">
+          <button class="button is-info" type="submit">
+            Узнать
+          </button>
+        </div>
+        <div id="suggestions" class="suggestions-list" style="display:none;"></div>
+      </div>
+    </form>
+  </div>
+</section>
+
+<script>
+const inp = document.getElementById('city-input');
+const suggBox = document.getElementById('suggestions');
+
+let timer;
+inp.addEventListener('input', () => {
+  clearTimeout(timer);
+  const q = inp.value.trim();
+  if (q.length < 2) {
+    suggBox.style.display = 'none';
+    return;
+  }
+  timer = setTimeout(async () => {
+    const res = await fetch(`/api/suggest?city=${encodeURIComponent(q)}`);
+    const list = await res.json();
+    if (!list.length) {
+      suggBox.style.display = 'none';
+      return;
+    }
+    suggBox.innerHTML = list.map(c =>
+      `<a onclick="selectCity('${c.replace("'", "\\'")}')">${c}</a>`
+    ).join('');
+    suggBox.style.display = 'block';
+  }, 300);
+});
+
+function selectCity(city) {
+  inp.value = city;
+  suggBox.style.display = 'none';
+}
+
+document.addEventListener('click', e => {
+  if (!inp.contains(e.target) && !suggBox.contains(e.target)) {
+    suggBox.style.display = 'none';
+  }
+});
+</script>
+</body>
+</html>
