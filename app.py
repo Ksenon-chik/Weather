@@ -95,7 +95,7 @@ def forecast():
         "current_weather":  True,  # ← правильный параметр
         "hourly":           "temperature_2m,relative_humidity_2m,wind_speed_10m",
         "timezone":         "auto",
-        "forecast_days":    1
+        "forecast_hours":    12
     }).json()
 
     # 4) Проверяем ответ
